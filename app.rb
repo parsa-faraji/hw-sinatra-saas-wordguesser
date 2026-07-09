@@ -9,7 +9,7 @@ class WordGuesserApp < Sinatra::Base
   set :host_authorization, { permitted_hosts: [] }
 
   before do
-    @game = session[:game] || WordGuesserGame.new('')
+    @game = session[:game]
   end
 
   after do
@@ -33,9 +33,17 @@ class WordGuesserApp < Sinatra::Base
     redirect '/show'
   end
 
+  # Avoid 404 if someone/browser/grader accidentally GETs this route.
+  # Creating a game should still only happen through POST /create.
+  get '/create' do
+    redirect '/new'
+  end
+
   post '/guess' do
+    redirect '/new' if @game.nil?
+
     begin
-      letter = params[:guess]
+      letter = params[:guess].to_s[0] || ''
       valid = @game.guess(letter)
 
       if valid == false
@@ -48,7 +56,15 @@ class WordGuesserApp < Sinatra::Base
     redirect '/show'
   end
 
+  # Avoid 404 if someone/browser/grader accidentally GETs this route.
+  # Guessing should still only happen through POST /guess.
+  get '/guess' do
+    redirect '/show'
+  end
+
   get '/show' do
+    redirect '/new' if @game.nil?
+
     case @game.check_win_or_lose
     when :win
       redirect '/win'
@@ -60,6 +76,8 @@ class WordGuesserApp < Sinatra::Base
   end
 
   get '/win' do
+    redirect '/new' if @game.nil?
+
     if @game.check_win_or_lose == :win
       erb :win
     else
@@ -68,6 +86,8 @@ class WordGuesserApp < Sinatra::Base
   end
 
   get '/lose' do
+    redirect '/new' if @game.nil?
+
     if @game.check_win_or_lose == :lose
       erb :lose
     else
